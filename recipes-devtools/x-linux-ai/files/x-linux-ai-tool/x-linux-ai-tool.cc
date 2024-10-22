@@ -32,6 +32,7 @@ bool to_install = false;
 bool version = false;
 bool features = false;
 
+
 extern const std::string WIKI_LINK;
 extern const std::string README_APPLI;
 extern const std::string README_VERSION;
