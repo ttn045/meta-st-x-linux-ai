@@ -27,11 +27,12 @@
 
 /* Define global variables */
 bool list = false;
-bool to_remove = false;
-bool to_install = false;
+bool remove = false;
+bool install = false;
 bool version = false;
 bool features = false;
 
+std::string inputPackageName = "";
 
 extern const std::string WIKI_LINK;
 extern const std::string README_APPLI;
@@ -83,10 +84,12 @@ void process_args(int argc, char** argv)
             list = true;
             break;
         case 'r':
-            to_remove = true;
+            inputPackageName = std::string(optarg);
+            remove = true;
             break;
         case 'i':
-            to_install = true;
+            inputPackageName = std::string(optarg);
+            install = true;
             break;
         case 'h': // -h or --help
         case '?': // Unrecognized option
@@ -170,11 +173,11 @@ void print_pkgs(const std::string& ostl_pkg_path, const std::string& x_pkg_path)
 }
 
 /* This function is used to install and uninstall pkgs */
-void manage_pkgs(int argc, char** argv, bool install = true) {
-    std::string command = (install ? "apt-get update && apt-get install -y " : "apt-get autoremove -y ") + std::string(argv[2]);
+void manage_pkgs(bool install = true) {
+    std::string command = (install ? "apt-get update && apt-get install -y " : "apt-get autoremove -y ") + inputPackageName);
     int result = system(command.c_str());
     if (result == 0) {
-        std::cout << std::string(argv[2])
+        std::cout << inputPackageName
                   << " has been "
                   << (install ? "installed" : "removed")
                   << " successfully."
@@ -184,7 +187,7 @@ void manage_pkgs(int argc, char** argv, bool install = true) {
                   << "Failed to "
                   << (install ? "install" : "remove")
                   << " package "
-                  << std::string(argv[2])
+                  << inputPackageName
                   << std::endl;
         exit(1);
     }
@@ -218,11 +221,11 @@ int main(int argc, char *argv[])
         }
         print_pkgs(ostl_pkg_path, x_pkg_path);
     }
-    else if (to_install && argc == 3) {
-        manage_pkgs(argc, argv,true);
+    else if (install) {
+        manage_pkgs(true);
     }
-    else if (to_remove && argc == 3) {
-        manage_pkgs(argc, argv,false);
+    else if (remove) {
+        manage_pkgs(false);
     }
     else if (version) {
         std::cout << "\nX-LINUX-AI version: " << README_VERSION << "\n" << std::endl;
