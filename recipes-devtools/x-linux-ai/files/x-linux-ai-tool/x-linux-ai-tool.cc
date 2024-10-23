@@ -226,7 +226,6 @@ int main(int argc, char *argv[])
     }
     else if (remove) {
         managePkgs(false);
-
     }
     else if (version) {
         std::cout << "\nX-LINUX-AI version: " << README_VERSION << "\n" << std::endl;
