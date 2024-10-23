@@ -27,11 +27,12 @@
 
 /* Define global variables */
 bool list = false;
-bool to_remove = false;
-bool to_install = false;
+bool remove = false;
+bool install = false;
 bool version = false;
 bool features = false;
 
+std::string inputPackageName = "";
 
 extern const std::string WIKI_LINK;
 extern const std::string README_APPLI;
@@ -83,10 +84,12 @@ void process_args(int argc, char** argv)
             list = true;
             break;
         case 'r':
-            to_remove = true;
+            inputPackageName = std::string(optarg);
+            remove = true;
             break;
         case 'i':
-            to_install = true;
+            inputPackageName = std::string(optarg);
+            install = true;
             break;
         case 'h': // -h or --help
         case '?': // Unrecognized option
@@ -98,7 +101,7 @@ void process_args(int argc, char** argv)
 }
 
 /* Get x-linux-ai pkgs list */
-std::set<std::string> _get_pkg(const std::string& file_path) {
+std::set<std::string> getPkg(const std::string& file_path) {
     std::ifstream file(file_path);
     if (!file.is_open()) {
         std::cout << "\nTo install x-linux-ai packages, please follow the instructions provided on the wiki page: \n" + WIKI_LINK << std::endl;
@@ -115,7 +118,7 @@ std::set<std::string> _get_pkg(const std::string& file_path) {
     return pkgs;
 }
 
-std::set<std::string> _set_common_pkgs(auto ostl_pkg, auto x_pkg) {
+std::set<std::string> setCommonPkgs(auto ostl_pkg, auto x_pkg) {
     std::set<std::string> common_pkg;
     std::set_intersection(ostl_pkg.begin(), ostl_pkg.end(),
                           x_pkg.begin(), x_pkg.end(),
@@ -123,7 +126,7 @@ std::set<std::string> _set_common_pkgs(auto ostl_pkg, auto x_pkg) {
     return common_pkg;
 }
 
-std::set<std::string> _get_x_pkg(auto ostl_pkg, auto x_pkg) {
+std::set<std::string> getXPkg(auto ostl_pkg, auto x_pkg) {
     std::set<std::string> av_x_pkg;
     for (const auto& pkg : x_pkg) {
         if (!ostl_pkg.count(pkg)) {
@@ -135,9 +138,9 @@ std::set<std::string> _get_x_pkg(auto ostl_pkg, auto x_pkg) {
 
 void print_pkgs(const std::string& ostl_pkg_path, const std::string& x_pkg_path) {
 
-    auto ostl_pkg = _get_pkg(ostl_pkg_path);
-    auto x_pkg = _get_pkg(x_pkg_path);
-    std::set<std::string> common_pkg = _set_common_pkgs(ostl_pkg, x_pkg);
+    auto ostl_pkg = getPkg(ostl_pkg_path);
+    auto x_pkg = getPkg(x_pkg_path);
+    std::set<std::string> common_pkg = setCommonPkgs(ostl_pkg, x_pkg);
 
     if(common_pkg.empty()){
         std::cout << "\n X-LINUX-AI packages are not currently installed. Please find below a list of all the available packages.\n" << std::endl;
@@ -151,7 +154,7 @@ void print_pkgs(const std::string& ostl_pkg_path, const std::string& x_pkg_path)
                       << std::endl;
         }
     }
-    x_pkg = _get_x_pkg(ostl_pkg, x_pkg);
+    x_pkg = getXPkg(ostl_pkg, x_pkg);
     if (x_pkg.empty()) {
         std::cout << "\n All X-LINUX-AI packages are already installed and up to date.\n" << std::endl;
     }
@@ -170,11 +173,11 @@ void print_pkgs(const std::string& ostl_pkg_path, const std::string& x_pkg_path)
 }
 
 /* This function is used to install and uninstall pkgs */
-void manage_pkgs(int argc, char** argv, bool install = true) {
-    std::string command = (install ? "apt-get update && apt-get install -y " : "apt-get autoremove -y ") + std::string(argv[2]);
+void managePkgs(bool install = true) {
+    std::string command = (install ? "apt-get update && apt-get install -y " : "apt-get autoremove -y ") + inputPackageName);
     int result = system(command.c_str());
     if (result == 0) {
-        std::cout << std::string(argv[2])
+        std::cout << inputPackageName
                   << " has been "
                   << (install ? "installed" : "removed")
                   << " successfully."
@@ -184,13 +187,13 @@ void manage_pkgs(int argc, char** argv, bool install = true) {
                   << "Failed to "
                   << (install ? "install" : "remove")
                   << " package "
-                  << std::string(argv[2])
+                  << inputPackageName
                   << std::endl;
         exit(1);
     }
 }
 
-std::string exec_command(const char* cmd) {
+std::string exeCommand(const char* cmd) {
     std::array<char, 128> buffer;
     std::string result;
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
@@ -211,18 +214,18 @@ int main(int argc, char *argv[])
     if (list) {
         std::string command = "ls /var/lib/apt/lists/*_AI_*_main_*";
         std::string ostl_pkg_path = "/var/lib/dpkg/status";
-        std::string x_pkg_path = exec_command(command.c_str());
+        std::string x_pkg_path = exeCommand(command.c_str());
 
         if (!x_pkg_path.empty() && x_pkg_path.back() == '\n') {
             x_pkg_path.pop_back();
         }
         print_pkgs(ostl_pkg_path, x_pkg_path);
     }
-    else if (to_install && argc == 3) {
-        manage_pkgs(argc, argv,true);
+    else if (install) {
+        managePkgs(true);
     }
-    else if (to_remove && argc == 3) {
-        manage_pkgs(argc, argv,false);
+    else if (remove) {
+        managePkgs(false);
     }
     else if (version) {
         std::cout << "\nX-LINUX-AI version: " << README_VERSION << "\n" << std::endl;
